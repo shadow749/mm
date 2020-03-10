@@ -41,9 +41,10 @@ export default {
   },
   watch: { // 监听输入框数据变化
     message (newVal) {
+      var cityId = this.$store.state.city.id
       var that = this
       this.cancelRequest()// 停止上一次请求
-      this.axios.get('/api/searchList?cityId=10&kw=' + newVal, {
+      this.axios.get('/api/searchList?cityId=' + cityId + '&kw=' + newVal, {
         cancelToken: new this.axios.CancelToken(function (c) {
           that.source = c
         })

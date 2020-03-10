@@ -1,6 +1,9 @@
 <template>
   <div class="movie_body">
+    <Loading v-if="isLoading"></Loading>
+    <Scroller v-else :handleToScroll="handleToScroll" :handleToTouchEnd="handleToTouchEnd">
       <ul>
+         <li class="pullDown">{{ pullDownMsg }}</li>
          <li v-for="item in movieList" :key="item.id">
                     <div class="pic_show" ><img :src="item.img | setWH('128.180')"></div>
                     <div class="info_list">
@@ -14,6 +17,7 @@
                     </div>
                 </li>
             </ul>
+    </Scroller>
   </div>
 </template>
 
@@ -25,16 +29,45 @@ export default {
       movieList: [],
       pullDownMsg: '',
       isLoading: true,
-      prevCityId: -1
+      prevCityId: -1 // 上一次的城市信息
     }
   },
-  mounted () {
-    this.axios.get('/api/movieOnInfoList?cityId=10').then((res) => {
+  activated () { // 该生命周期在keep-alive激活后触发
+    // 从状态管理器里获取城市
+    var cityId = this.$store.state.city.id
+    // 若上一次的城市与当前城市相同，则不刷新数据
+    if (this.prevCityId === cityId) { return }
+    this.isLoading = true
+    this.axios.get('/api/movieOnInfoList?cityId=' + cityId).then((res) => {
       var msg = res.data.msg
       if (msg === 'ok') {
+        this.isLoading = false
+        this.prevCityId = cityId
         this.movieList = res.data.data.movieList
       }
     })
+  },
+  methods: {
+    // 下面两个方法用来与滑动父级组件的通信，绑定父级组件的两个属性
+    handleToScroll (pos) {
+      if (pos.y > 30) {
+        this.pullDownMsg = '正在更新中'
+      }
+    },
+    handleToTouchEnd (pos) {
+      if (pos.y > 30) {
+        this.axios.get('/api/movieOnInfoList?cityId=11').then((res) => {
+          var msg = res.data.msg
+          if (msg === 'ok') {
+            this.pullDownMsg = '更新成功'
+            setTimeout(() => {
+              this.movieList = res.data.data.movieList
+              this.pullDownMsg = ''
+            }, 1000)
+          }
+        })
+      }
+    }
   }
 }
 </script>
@@ -52,4 +85,5 @@ export default {
 .movie_body .info_list img{ width:50px; position: absolute; right:10px; top: 5px;}
 .movie_body .btn_mall , .movie_body .btn_pre{ width:47px; height:27px; line-height: 28px; text-align: center; background-color: #f03d37; color: #fff; border-radius: 4px; font-size: 12px; cursor: pointer;}
 .movie_body .btn_pre{ background-color: #3c9fe6;}
+.movie_body .pullDown{ margin:0; padding:0; border:none;}
 </style>
